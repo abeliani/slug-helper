@@ -8,11 +8,16 @@ class SlugHelper
     const TO_UPPER = 1;
 
     public function __construct(
-        private array  $clearWords = [],
+        private array  $removedWordsList = [],
         private string $insteadOfSpaces = '-',
-        private bool   $onlyWords = true,
+        private bool   $nonSlugChars = true,
         private int    $toCase = self::TO_LOWER,
     ) {
+    }
+
+    public static function convert(string $string, array $clearWords = []): string
+    {
+        return (new self($clearWords))->__invoke($string);
     }
 
     public function process(string $text): string
@@ -26,15 +31,30 @@ class SlugHelper
             return $text;
         }
 
-        if ($this->onlyWords) {
-            $text = preg_replace('~[^\w\s]~u', '', $text);
+        return $this->replaceSpaces($this->removeWordsByList($this->filterNonSlugChars($text)));
+    }
+
+    private function filterNonSlugChars(string $text): string
+    {
+        if ($this->nonSlugChars) {
+           return preg_replace('~[^\w\s]~u', '', $text);
         }
 
-        if ($this->clearWords) {
-            $pattern = sprintf('~(%s)([^\w]|$)~ui', implode('|', $this->clearWords));
+        return $text;
+    }
+
+    private function removeWordsByList(string $text): string
+    {
+        if ($this->removedWordsList) {
+            $pattern = sprintf('~(%s)([^\w]|$)~ui', implode('|', $this->removedWordsList));
             $text = preg_replace($pattern, '', $text);
         }
 
+        return $text;
+    }
+
+    private function replaceSpaces(string $text): string
+    {
         return preg_replace('~\s+~', $this->insteadOfSpaces, trim($this->stringCase($text)));
     }
 
